@@ -294,26 +294,32 @@
             <div class="row g-2">
               <div class="col-6">
                 <input
-                  type="number"
+                  type="text"
+                  inputmode="numeric"
                   id="hargaBeli"
                   class="form-control"
                   placeholder="Hrg Beli"
+                  oninput="formatRibuan(this)"
                 />
               </div>
               <div class="col-6">
                 <input
-                  type="number"
+                  type="text"
+                  inputmode="numeric"
                   id="hargaJual"
                   class="form-control"
                   placeholder="Hrg Jual"
+                  oninput="formatRibuan(this)"
                 />
               </div>
               <div class="col-4">
                 <input
-                  type="number"
+                  type="text"
+                  inputmode="numeric"
                   id="qty"
                   class="form-control"
                   placeholder="Qty"
+                  oninput="formatRibuan(this)"
                 />
               </div>
               <div class="col-8">
@@ -483,14 +489,23 @@
         });
       }
 
+      function formatRibuan(input) {
+        let value = input.value.replace(/[^0-9]/g, "");
+        if (value) {
+          input.value = parseInt(value, 10).toLocaleString("id-ID");
+        } else {
+          input.value = "";
+        }
+      }
+
       // Fungsi Tambah atau Update (Edit)
       function tambahAtauUpdateItem() {
         const editIdx = parseInt(document.getElementById("editIndex").value);
         const item = {
           nama: document.getElementById("namaBarang").value,
-          beli: parseFloat(document.getElementById("hargaBeli").value) || 0,
-          jual: parseFloat(document.getElementById("hargaJual").value) || 0,
-          qty: parseInt(document.getElementById("qty").value) || 0,
+          beli: parseFloat(document.getElementById("hargaBeli").value.replace(/\./g, "")) || 0,
+          jual: parseFloat(document.getElementById("hargaJual").value.replace(/\./g, "")) || 0,
+          qty: parseInt(document.getElementById("qty").value.replace(/\./g, "")) || 0,
         };
 
         if (!item.nama || item.jual <= 0 || item.qty <= 0) {
@@ -530,9 +545,9 @@
       function editItem(index) {
         const item = cart[index];
         document.getElementById("namaBarang").value = item.nama;
-        document.getElementById("hargaBeli").value = item.beli;
-        document.getElementById("hargaJual").value = item.jual;
-        document.getElementById("qty").value = item.qty;
+        document.getElementById("hargaBeli").value = item.beli.toLocaleString("id-ID");
+        document.getElementById("hargaJual").value = item.jual.toLocaleString("id-ID");
+        document.getElementById("qty").value = item.qty.toLocaleString("id-ID");
         document.getElementById("editIndex").value = index;
 
         document.getElementById("btnTambah").innerHTML =
@@ -650,7 +665,7 @@
                     <span>TOTAL</span>
                     <span>Rp ${trx.totalJual.toLocaleString()}</span>
                 </div>
-                <center><br>${shopSettings.footer}</center>
+                <center><br>${shopSettings.footer}<br><br></center>
             </div>
         `;
       }
