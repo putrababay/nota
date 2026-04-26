@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Kasir Mobile - Bayu Anggara</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+    />
+
+    <style>
+      :root {
+        --primary-color: #4e73df;
+      }
+      body {
+        background-color: #f0f2f5;
+        font-size: 14px;
+        padding-bottom: 50px;
+      }
+      .card {
+        border-radius: 15px;
+        border: none;
+        margin-bottom: 15px;
+      }
+      .btn {
+        border-radius: 10px;
+        padding: 10px;
+      }
+      .form-control {
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid #ddd;
+      }
+
+      /* Dashboard Mini untuk Mobile */
+      .stat-box {
+        padding: 15px;
+        border-radius: 12px;
+        color: white;
+        margin-bottom: 10px;
+      }
+
+      /* Mobile Table Optimization */
+      .table-mobile {
+        font-size: 13px;
+      }
+
+      #printArea {
+        display: none;
+      }
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #printArea,
+        #printArea * {
+          visibility: visible;
+        }
+        #printArea {
+          display: block;
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          font-family: monospace;
+        }
+        .no-print {
+          display: none !important;
+        }
+      }
+
+      /* Main Container & Zoom */
+      .main-container {
+        max-width: 768px;
+        margin: 0 auto;
+      }
+      .table-responsive {
+        -webkit-overflow-scrolling: touch;
+      }
+      .table-mobile th,
+      .table-mobile td {
+        white-space: nowrap;
+      }
+
+      /* Header Toko */
+      .shop-header {
+        text-align: center;
+        padding: 20px 0;
+      }
+
+      #zoomLevelIndicator {
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+      #zoomLevelIndicator:hover {
+        background-color: #f8f9fa;
+        color: #0d6efd;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid no-print main-container">
+      <div
+        class="d-flex flex-wrap justify-content-between align-items-center mt-3 px-2 gap-2"
+      >
+        <div class="d-flex align-items-center">
+          <span
+            class="badge rounded-pill bg-light text-dark border small shadow-sm"
+          >
+            <i class="bi bi-clock me-1"></i> Mode Kasir
+          </span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <div class="btn-group shadow-sm" role="group">
+            <button
+              class="btn btn-sm btn-outline-primary bg-white"
+              onclick="changeZoom(-0.1)"
+              title="Perkecil"
+            >
+              <i class="bi bi-dash-lg"></i>
+            </button>
+            <button
+              class="btn btn-sm btn-light border-start border-end px-2 fw-bold"
+              onclick="resetZoom()"
+              id="zoomLevelIndicator"
+              style="min-width: 55px; font-size: 0.75rem"
+            >
+              100%
+            </button>
+            <button
+              class="btn btn-sm btn-outline-primary bg-white"
+              onclick="changeZoom(0.1)"
+              title="Perbesar"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
+
+          <button
+            class="btn btn-sm btn-primary shadow-sm"
+            data-bs-toggle="modal"
+            data-bs-target="#settingsModal"
+          >
+            <i class="bi bi-gear-fill"></i>
+            <span class="d-none d-sm-inline">Toko</span>
+          </button>
+        </div>
+      </div>
+
+      <div
+        class="shop-header text-center mt-4 pb-3 border-bottom border-2 border-light"
+      >
+        <h4
+          class="fw-bolder mb-1 text-dark"
+          id="displayTokoNama"
+          style="letter-spacing: -0.5px"
+        >
+          Bayu Anggara
+        </h4>
+        <div
+          class="d-flex justify-content-center align-items-center text-muted small"
+          id="displayTokoKontak"
+        >
+          <i class="bi bi-geo-alt-fill me-1 text-danger"></i> Prambon, Sidoarjo
+          <span class="mx-2">•</span>
+          <i class="bi bi-whatsapp me-1 text-success"></i> 08999686850
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <small class="text-muted fw-bold"
+              ><i class="bi bi-graph-up me-1"></i>Omzet (Penjualan)</small
+            >
+            <div class="fw-bold text-primary fs-5" id="dashTotalJual">Rp 0</div>
+          </div>
+          <div class="progress mb-2" style="height: 25px" id="dashProgress">
+            <div
+              class="progress-bar bg-warning text-dark fw-bold"
+              role="progressbar"
+              style="width: 0%"
+              title="Modal (Pembelian)"
+              id="barBeli"
+            >
+              Modal
+            </div>
+            <div
+              class="progress-bar bg-success fw-bold"
+              role="progressbar"
+              style="width: 0%"
+              title="Laba"
+              id="barLaba"
+            >
+              Laba
+            </div>
+          </div>
+          <div class="d-flex justify-content-between">
+            <small class="text-muted"
+              ><i class="bi bi-box-seam me-1"></i>Modal:
+              <span id="dashTotalBeli" class="text-warning fw-bold"
+                >Rp 0</span
+              ></small
+            >
+            <small class="text-muted"
+              ><i class="bi bi-cash-coin me-1"></i>Laba:
+              <span id="dashTotalLaba" class="text-success fw-bold">Rp 0</span>
+              (<span id="dashPersenLaba">0</span>%)</small
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3">
+            <i class="bi bi-plus-circle me-2"></i>Input Transaksi
+          </h6>
+          <div class="mb-3">
+            <div class="input-group mb-2">
+              <span class="input-group-text"><i class="bi bi-person"></i></span>
+              <input
+                type="text"
+                id="pembeli"
+                class="form-control"
+                placeholder="Nama Pembeli (Opsional)"
+              />
+            </div>
+            <div class="input-group">
+              <span class="input-group-text"
+                ><i class="bi bi-geo-alt"></i
+              ></span>
+              <input
+                type="text"
+                id="alamatPembeli"
+                class="form-control"
+                placeholder="Alamat Pembeli (Opsional)"
+              />
+            </div>
+          </div>
+          <div class="bg-light p-3 rounded-3">
+            <input type="hidden" id="editIndex" value="-1" />
+            <div class="input-group mb-2">
+              <span class="input-group-text"><i class="bi bi-box"></i></span>
+              <input
+                type="text"
+                id="namaBarang"
+                class="form-control"
+                placeholder="Nama Barang"
+              />
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <input
+                  type="number"
+                  id="hargaBeli"
+                  class="form-control"
+                  placeholder="Hrg Beli"
+                />
+              </div>
+              <div class="col-6">
+                <input
+                  type="number"
+                  id="hargaJual"
+                  class="form-control"
+                  placeholder="Hrg Jual"
+                />
+              </div>
+              <div class="col-4">
+                <input
+                  type="number"
+                  id="qty"
+                  class="form-control"
+                  placeholder="Qty"
+                />
+              </div>
+              <div class="col-8">
+                <button
+                  onclick="tambahAtauUpdateItem()"
+                  id="btnTambah"
+                  class="btn btn-dark w-100 fw-bold"
+                >
+                  <i class="bi bi-cart-plus me-1"></i>Tambah Item
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body p-2">
+          <h6 class="fw-bold p-2 mb-0">Item Nota</h6>
+          <div class="table-responsive">
+            <table class="table table-mobile align-middle">
+              <thead>
+                <tr class="text-muted">
+                  <th>Barang</th>
+                  <th>H.Beli</th>
+                  <th>H.Jual</th>
+                  <th>Qty</th>
+                  <th>Total</th>
+                  <th class="text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="cartTable"></tbody>
+            </table>
+          </div>
+          <button
+            onclick="simpanTransaksi()"
+            class="btn btn-primary w-100 fw-bold mt-2 py-3"
+          >
+            <i class="bi bi-printer me-2"></i>SIMPAN & CETAK NOTA
+          </button>
+        </div>
+      </div>
+
+      <div
+        class="d-flex justify-content-between align-items-center mt-4 mb-2 px-2"
+      >
+        <h6 class="fw-bold mb-0">Riwayat Terakhir</h6>
+        <input
+          type="month"
+          id="filterBulan"
+          class="form-control form-control-sm w-auto"
+          onchange="initApp()"
+        />
+      </div>
+      <div id="historyList" class="mb-4"></div>
+
+      <footer class="mt-5 mb-0 py-4 bg-light rounded-bottom text-center">
+        <div class="container">
+          <h6 class="text-primary fw-bold mb-1" id="footerNotaTitle">
+            Terima Kasih
+          </h6>
+          <p class="text-muted small mb-0" id="footerNota">
+            Atas kunjungan dan kepercayaan Anda
+          </p>
+        </div>
+      </footer>
+    </div>
+
+    <div id="printArea"></div>
+
+    <!-- Modal Pengaturan Toko -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">Pengaturan Toko</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-2">
+              <label class="form-label small">Nama Toko</label>
+              <input type="text" id="settingNama" class="form-control" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small">Alamat</label>
+              <input type="text" id="settingAlamat" class="form-control" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small">No Telp</label>
+              <input type="text" id="settingTelp" class="form-control" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label small">Teks Footer Nota</label>
+              <input
+                type="text"
+                id="settingFooter"
+                class="form-control"
+                placeholder="Terima Kasih"
+              />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="simpanSettings()"
+              data-bs-dismiss="modal"
+            >
+              Simpan
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      let cart = [];
+      let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+      let shopSettings = JSON.parse(localStorage.getItem("shopSettings")) || {
+        nama: "Bayu Anggara",
+        alamat: "Prambon, Sidoarjo",
+        telp: "08999686850",
+        footer: "Terima Kasih",
+      };
+
+      function initSettings() {
+        document.getElementById("settingNama").value = shopSettings.nama;
+        document.getElementById("settingAlamat").value = shopSettings.alamat;
+        document.getElementById("settingTelp").value = shopSettings.telp;
+        document.getElementById("settingFooter").value = shopSettings.footer;
+
+        document.getElementById("displayTokoNama").innerText =
+          shopSettings.nama;
+        document.getElementById("displayTokoKontak").innerText =
+          `${shopSettings.alamat} • ${shopSettings.telp}`;
+        document.getElementById("footerNota").innerText = shopSettings.footer;
+      }
+
+      function simpanSettings() {
+        shopSettings = {
+          nama: document.getElementById("settingNama").value || "Nama Toko",
+          alamat: document.getElementById("settingAlamat").value || "-",
+          telp: document.getElementById("settingTelp").value || "-",
+          footer:
+            document.getElementById("settingFooter").value || "Terima Kasih",
+        };
+        localStorage.setItem("shopSettings", JSON.stringify(shopSettings));
+        initSettings();
+        Swal.fire({
+          icon: "success",
+          title: "Pengaturan Disimpan",
+          timer: 1000,
+          showConfirmButton: false,
+        });
+      }
+
+      // Fungsi Tambah atau Update (Edit)
+      function tambahAtauUpdateItem() {
+        const editIdx = parseInt(document.getElementById("editIndex").value);
+        const item = {
+          nama: document.getElementById("namaBarang").value,
+          beli: parseFloat(document.getElementById("hargaBeli").value) || 0,
+          jual: parseFloat(document.getElementById("hargaJual").value) || 0,
+          qty: parseInt(document.getElementById("qty").value) || 0,
+        };
+
+        if (!item.nama || item.jual <= 0 || item.qty <= 0) {
+          Swal.fire("Oops!", "Nama, Harga, dan Qty harus diisi", "warning");
+          return;
+        }
+
+        if (editIdx > -1) {
+          cart[editIdx] = item;
+          Swal.fire({
+            icon: "success",
+            title: "Item diupdate",
+            timer: 1000,
+            showConfirmButton: false,
+          });
+        } else {
+          cart.push(item);
+        }
+
+        resetFormItem();
+        renderCart();
+      }
+
+      function resetFormItem() {
+        document.getElementById("namaBarang").value = "";
+        document.getElementById("hargaBeli").value = "";
+        document.getElementById("hargaJual").value = "";
+        document.getElementById("qty").value = "";
+        document.getElementById("editIndex").value = "-1";
+        document.getElementById("btnTambah").innerHTML =
+          '<i class="bi bi-cart-plus me-1"></i>Tambah Item';
+        document
+          .getElementById("btnTambah")
+          .classList.replace("btn-warning", "btn-dark");
+      }
+
+      function editItem(index) {
+        const item = cart[index];
+        document.getElementById("namaBarang").value = item.nama;
+        document.getElementById("hargaBeli").value = item.beli;
+        document.getElementById("hargaJual").value = item.jual;
+        document.getElementById("qty").value = item.qty;
+        document.getElementById("editIndex").value = index;
+
+        document.getElementById("btnTambah").innerHTML =
+          '<i class="bi bi-check-circle me-1"></i>Update Item';
+        document
+          .getElementById("btnTambah")
+          .classList.replace("btn-dark", "btn-warning");
+        window.scrollTo(0, 100);
+      }
+
+      function hapusItem(index) {
+        Swal.fire({
+          title: "Hapus item?",
+          text: cart[index].nama + " akan dihapus",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          confirmButtonText: "Ya, Hapus",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            cart.splice(index, 1);
+            renderCart();
+          }
+        });
+      }
+
+      function renderCart() {
+        const tbody = document.getElementById("cartTable");
+        tbody.innerHTML = cart
+          .map(
+            (item, index) => `
+            <tr>
+                <td><strong>${item.nama}</strong></td>
+                <td>${item.beli.toLocaleString()}</td>
+                <td>${item.jual.toLocaleString()}</td>
+                <td>${item.qty}</td>
+                <td>${(item.jual * item.qty).toLocaleString()}</td>
+                <td class="text-center">
+                    <div class="btn-group">
+                        <button onclick="editItem(${index})" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil"></i></button>
+                        <button onclick="hapusItem(${index})" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `,
+          )
+          .join("");
+      }
+
+      async function simpanTransaksi() {
+        if (cart.length === 0)
+          return Swal.fire("Kosong", "Tambahkan item dulu!", "info");
+
+        const result = await Swal.fire({
+          title: "Simpan Transaksi?",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Ya, Simpan & Cetak",
+        });
+
+        if (result.isConfirmed) {
+          const trx = {
+            id: "INV-" + Date.now().toString().slice(-6),
+            tanggal: new Date().toLocaleString("id-ID"),
+            pembeli: document.getElementById("pembeli").value || "Umum",
+            alamat: document.getElementById("alamatPembeli").value || "",
+            statusTerbayar: true,
+            items: [...cart],
+            totalJual: cart.reduce((sum, i) => sum + i.jual * i.qty, 0),
+            totalBeli: cart.reduce((sum, i) => sum + i.beli * i.qty, 0),
+          };
+
+          transactions.push(trx);
+          localStorage.setItem("transactions", JSON.stringify(transactions));
+
+          siapkanCetak(trx);
+          cart = [];
+          document.getElementById("pembeli").value = "";
+          document.getElementById("alamatPembeli").value = "";
+          renderCart();
+          initApp();
+
+          window.print();
+          Swal.fire("Berhasil", "Transaksi telah disimpan", "success");
+        }
+      }
+
+      function siapkanCetak(trx) {
+        document.getElementById("printArea").innerHTML = `
+            <div style="width: 58mm; padding: 2mm; font-family: monospace; font-size: 12px;">
+                <center>
+                    <strong>${shopSettings.nama.toUpperCase()}</strong><br>
+                    ${shopSettings.alamat}<br>
+                    ${shopSettings.telp}<br>
+                    -------------------------
+                </center>
+                ID  : ${trx.id}<br>
+                Tgl : ${trx.tanggal}<br>
+                Plgn: ${trx.pembeli}<br>
+                ${trx.alamat ? `Almt: ${trx.alamat}<br>` : ""}
+                -------------------------
+                ${trx.items
+                  .map(
+                    (i) => `
+                    <div>${i.nama.substring(0, 20)}</div>
+                    <div style="display:flex; justify-content:space-between">
+                        <span>${i.qty} x ${i.jual.toLocaleString()}</span>
+                        <span>${(i.jual * i.qty).toLocaleString()}</span>
+                    </div>
+                `,
+                  )
+                  .join("")}
+                -------------------------
+                <div style="display:flex; justify-content:space-between; font-weight:bold">
+                    <span>TOTAL</span>
+                    <span>Rp ${trx.totalJual.toLocaleString()}</span>
+                </div>
+                <center><br>${shopSettings.footer}</center>
+            </div>
+        `;
+      }
+
+      function initApp() {
+        // Filter Transactions
+        const filterBulanInput = document.getElementById("filterBulan");
+        if (!filterBulanInput.value) {
+          const now = new Date();
+          const yyyy = now.getFullYear();
+          const mm = String(now.getMonth() + 1).padStart(2, "0");
+          filterBulanInput.value = `${yyyy}-${mm}`;
+        }
+        const filterBulan = filterBulanInput.value;
+        let filteredTransactions = transactions;
+
+        if (filterBulan) {
+          // filterBulan is format YYYY-MM
+          const [filterYear, filterMonth] = filterBulan.split("-");
+          filteredTransactions = transactions.filter((t) => {
+            // Parse date from "DD/MM/YYYY, HH:MM:SS" -> careful of variations, try basic split
+            let dateStr = t.tanggal;
+            if (dateStr) {
+              let parts = dateStr.split(",")[0].split("/"); // typical JS locale id-ID format is DD/MM/YYYY
+              if (parts.length === 3) {
+                const tMonth = parts[1].padStart(2, "0");
+                const tYear = parts[2];
+                return tYear === filterYear && tMonth === filterMonth;
+              }
+            }
+            return true; // Fallback if parse fails
+          });
+        }
+
+        // Render History Card
+        const historyDiv = document.getElementById("historyList");
+        const latest = [...filteredTransactions].reverse().slice(0, 10); // Show more since we have items
+
+        historyDiv.innerHTML = latest
+          .map((t) => {
+            const realIdx = transactions.findIndex((trx) => trx.id === t.id);
+            const isPaid = t.statusTerbayar !== false; // Default true
+            const laba = t.totalJual - (t.totalBeli || 0);
+
+            let itemsHtml = `
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0 text-nowrap">
+                  <thead class="table-light text-muted small">
+                    <tr><th>Barang</th><th>H.Beli</th><th>H.Jual</th><th>Qty</th><th>Total</th></tr>
+                  </thead>
+                  <tbody class="small">
+                    ${t.items
+                      .map(
+                        (i) => `
+                      <tr>
+                        <td>${i.nama}</td>
+                        <td>${i.beli.toLocaleString()}</td>
+                        <td>${i.jual.toLocaleString()}</td>
+                        <td>${i.qty}</td>
+                        <td>${(i.jual * i.qty).toLocaleString()}</td>
+                      </tr>
+                    `,
+                      )
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            `;
+
+            return `
+            <div class="card p-3 mb-2 shadow-sm border-start ${isPaid ? "border-primary" : "border-danger"} border-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <small class="text-muted">${t.tanggal}</small>
+                        <div class="fw-bold">${t.pembeli} ${t.alamat ? `<span class="fw-normal text-muted small">(${t.alamat})</span>` : ""}</div>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge ${isPaid ? "bg-success" : "bg-danger"} mb-1">${isPaid ? "Terbayar" : "Belum Lunas"}</span>
+                    </div>
+                </div>
+
+                <div class="row g-1 mb-2 small bg-light p-2 rounded">
+                    <div class="col-6">
+                        <div class="text-muted">Omzet</div>
+                        <div class="fw-bold text-primary">Rp ${t.totalJual.toLocaleString()}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-muted">Laba</div>
+                        <div class="fw-bold text-success">Rp ${laba.toLocaleString()}</div>
+                    </div>
+                </div>
+
+                <div class="collapse" id="items-${t.id}">
+                    <div class="p-2 border rounded mb-2 bg-white">
+                        <div class="fw-bold small mb-1 border-bottom pb-1">Detail Item:</div>
+                        ${itemsHtml}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" data-bs-toggle="collapse" data-bs-target="#items-${t.id}">
+                            <i class="bi bi-list-ul"></i> Item
+                        </button>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="form-check form-switch m-0" title="Status Terbayar">
+                            <input class="form-check-input" type="checkbox" ${isPaid ? "checked" : ""} onchange="toggleStatus(${realIdx})">
+                        </div>
+                        <button onclick="cetakLagi(${realIdx})" class="btn btn-light btn-sm text-primary py-0 px-2 border" title="Cetak Lagi">
+                            <i class="bi bi-printer"></i>
+                        </button>
+                        <button onclick="downloadNota(${realIdx})" class="btn btn-light btn-sm text-success py-0 px-2 border" title="Download Gambar">
+                            <i class="bi bi-image"></i>
+                        </button>
+                        <button onclick="editTransaksi(${realIdx})" class="btn btn-light btn-sm text-warning py-0 px-2 border" title="Edit Transaksi">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button onclick="hapusHistory(${realIdx})" class="btn btn-light btn-sm text-danger py-0 px-2 border" title="Hapus">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+          })
+          .join("");
+
+        // Update Dashboard
+        const totalJual = filteredTransactions.reduce(
+          (sum, t) => sum + t.totalJual,
+          0,
+        );
+        const totalBeli = filteredTransactions.reduce(
+          (sum, t) => sum + (t.totalBeli || 0),
+          0,
+        );
+        const laba = totalJual - totalBeli;
+        const persenBeli = totalJual > 0 ? (totalBeli / totalJual) * 100 : 0;
+        const persenLaba = totalJual > 0 ? (laba / totalJual) * 100 : 0;
+
+        document.getElementById("dashTotalJual").innerText =
+          `Rp ${totalJual.toLocaleString()}`;
+        document.getElementById("dashTotalBeli").innerText =
+          `Rp ${totalBeli.toLocaleString()}`;
+        document.getElementById("dashTotalLaba").innerText =
+          `Rp ${laba.toLocaleString()}`;
+        document.getElementById("dashPersenLaba").innerText =
+          persenLaba.toFixed(1);
+
+        document.getElementById("barBeli").style.width = `${persenBeli}%`;
+        document.getElementById("barLaba").style.width = `${persenLaba}%`;
+
+        if (persenLaba < 0) {
+          document.getElementById("barLaba").style.width = "0%";
+          document
+            .getElementById("barBeli")
+            .classList.replace("bg-warning", "bg-danger");
+        } else {
+          document
+            .getElementById("barBeli")
+            .classList.replace("bg-danger", "bg-warning");
+        }
+      }
+
+      function toggleStatus(index) {
+        transactions[index].statusTerbayar = !(
+          transactions[index].statusTerbayar !== false
+        );
+        localStorage.setItem("transactions", JSON.stringify(transactions));
+        initApp();
+      }
+
+      function cetakLagi(index) {
+        const trx = transactions[index];
+        siapkanCetak(trx);
+        window.print();
+      }
+
+      function editTransaksi(index) {
+        Swal.fire({
+          title: "Edit Transaksi?",
+          text: "Transaksi ini akan ditarik ke form input dan dihapus dari riwayat.",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Ya, Edit",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            const t = transactions[index];
+            document.getElementById("pembeli").value =
+              t.pembeli === "Umum" ? "" : t.pembeli;
+            document.getElementById("alamatPembeli").value = t.alamat || "";
+            cart = [...t.items];
+            transactions.splice(index, 1);
+            localStorage.setItem("transactions", JSON.stringify(transactions));
+            renderCart();
+            initApp();
+            window.scrollTo(0, 0);
+          }
+        });
+      }
+
+      let currentZoom = parseFloat(localStorage.getItem("appZoom")) || 1;
+
+      function applyZoom() {
+        document.documentElement.style.fontSize = `${16 * currentZoom}px`;
+        document.getElementById("zoomLevelIndicator").innerText =
+          `${Math.round(currentZoom * 100)}%`;
+      }
+
+      function changeZoom(delta) {
+        currentZoom += delta;
+        if (currentZoom < 0.5) currentZoom = 0.5;
+        if (currentZoom > 3.0) currentZoom = 3.0;
+        localStorage.setItem("appZoom", currentZoom);
+        applyZoom();
+      }
+
+      function resetZoom() {
+        currentZoom = 1;
+        localStorage.setItem("appZoom", currentZoom);
+        applyZoom();
+      }
+
+      function downloadNota(index) {
+        const trx = transactions[index];
+        const tempDiv = document.createElement("div");
+        tempDiv.style.position = "absolute";
+        tempDiv.style.left = "-9999px";
+        tempDiv.style.background = "white";
+        tempDiv.style.width = "350px";
+        tempDiv.style.padding = "20px";
+
+        let itemsHtml = trx.items
+          .map(
+            (i) => `
+            <div>${i.nama}</div>
+            <div style="display:flex; justify-content:space-between;">
+                <span>${i.qty} x ${i.jual.toLocaleString()}</span>
+                <span>${(i.jual * i.qty).toLocaleString()}</span>
+            </div>
+        `,
+          )
+          .join("");
+
+        tempDiv.innerHTML = `
+            <div style="font-family: monospace; font-size: 14px; color: black; border: 1px dashed #999; padding: 15px;">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <strong style="font-size: 16px;">${shopSettings.nama.toUpperCase()}</strong><br>
+                    ${shopSettings.alamat}<br>
+                    ${shopSettings.telp}<br>
+                    --------------------------------
+                </div>
+                <div>
+                    ID  : ${trx.id}<br>
+                    Tgl : ${trx.tanggal}<br>
+                    Plgn: ${trx.pembeli}<br>
+                    ${trx.alamat ? `Almt: ${trx.alamat}<br>` : ""}
+                    --------------------------------
+                </div>
+                <div>
+                    ${itemsHtml}
+                    --------------------------------
+                </div>
+                <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                    <span>TOTAL</span>
+                    <span>Rp ${trx.totalJual.toLocaleString()}</span>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <br>${shopSettings.footer}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(tempDiv);
+
+        Swal.fire({
+          title: "Membuat Gambar...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        html2canvas(tempDiv)
+          .then((canvas) => {
+            const link = document.createElement("a");
+            link.download = `Nota_${trx.id}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            document.body.removeChild(tempDiv);
+            Swal.close();
+          })
+          .catch((err) => {
+            console.error(err);
+            document.body.removeChild(tempDiv);
+            Swal.fire("Error", "Gagal membuat gambar nota", "error");
+          });
+      }
+
+      function hapusHistory(index) {
+        Swal.fire({
+          title: "Hapus Permanen?",
+          text: "Data riwayat ini akan dihapus dari sistem",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          confirmButtonText: "Ya, Hapus",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            transactions.splice(index, 1);
+            localStorage.setItem("transactions", JSON.stringify(transactions));
+            initApp();
+            Swal.fire("Dihapus!", "Riwayat telah dibersihkan.", "success");
+          }
+        });
+      }
+
+      applyZoom();
+      initSettings();
+      initApp();
+    </script>
+  </body>
+</html>

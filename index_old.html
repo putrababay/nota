@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Nota - Bayu Anggara</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .dashboard-card { transition: transform 0.3s; }
+        .dashboard-card:hover { transform: translateY(-5px); }
+        
+        /* Styling Khusus Cetak Thermal */
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 58mm; /* Sesuaikan ke 80mm jika perlu */
+                font-size: 10px;
+                line-height: 1.2;
+            }
+            .no-print { display: none; }
+        }
+        
+        .receipt-header { text-align: center; border-bottom: 1px dashed #000; margin-bottom: 10px; }
+        .receipt-footer { text-align: center; border-top: 1px dashed #000; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container py-4 no-print">
+    <header class="mb-4">
+        <h2 class="fw-bold text-primary">Bayu Anggara <span class="text-secondary fs-5">| Nota Management</span></h2>
+        <p class="text-muted">Prambon, Sidoarjo - 08999686850</p>
+    </header>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-2">
+            <div class="card dashboard-card bg-primary text-white p-3">
+                <h5>Total Omzet (Jual)</h5>
+                <h3 id="dashTotalJual">Rp 0</h3>
+            </div>
+        </div>
+        <div class="col-md-6 mb-2">
+            <div class="card dashboard-card bg-success text-white p-3">
+                <h5>Estimasi Margin (Laba)</h5>
+                <h3 id="dashTotalLaba">Rp 0</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card p-4">
+                <h5 class="mb-3 fw-bold">Data Transaksi</h5>
+                <div class="mb-3">
+                    <label class="form-label">Nama Pembeli</label>
+                    <input type="text" id="pembeli" class="form-control" placeholder="Umum">
+                </div>
+                <hr>
+                <h6 class="fw-bold">Tambah Item</h6>
+                <div class="mb-2">
+                    <input type="text" id="namaBarang" class="form-control mb-2" placeholder="Nama Barang">
+                    <div class="row g-2">
+                        <div class="col-6"><input type="number" id="hargaBeli" class="form-control" placeholder="Hrg Beli"></div>
+                        <div class="col-6"><input type="number" id="hargaJual" class="form-control" placeholder="Hrg Jual"></div>
+                        <div class="col-6"><input type="number" id="qty" class="form-control" placeholder="Qty"></div>
+                        <div class="col-6"><button onclick="tambahKeList()" class="btn btn-dark w-100">Tambah</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card p-4 mb-4">
+                <h5 class="fw-bold mb-3">Item dalam Nota</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Barang</th>
+                                <th>Qty</th>
+                                <th>Harga</th>
+                                <th>Total</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cartTable"></tbody>
+                    </table>
+                </div>
+                <div class="text-end mt-3">
+                    <button onclick="simpanTransaksi()" class="btn btn-primary btn-lg">Simpan & Cetak</button>
+                </div>
+            </div>
+
+            <div class="card p-4">
+                <h5 class="fw-bold mb-3">Riwayat Nota</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Tanggal</th>
+                                <th>Pembeli</th>
+                                <th>Total</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+    let cart = [];
+    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+    function tambahKeList() {
+        const item = {
+            id: Date.now(),
+            nama: document.getElementById('namaBarang').value,
+            beli: parseFloat(document.getElementById('hargaBeli').value),
+            jual: parseFloat(document.getElementById('hargaJual').value),
+            qty: parseInt(document.getElementById('qty').value)
+        };
+
+        if(!item.nama || !item.jual || !item.qty) return alert("Lengkapi data barang!");
+        
+        cart.push(item);
+        renderCart();
+        clearInput();
+    }
+
+    function renderCart() {
+        const tbody = document.getElementById('cartTable');
+        tbody.innerHTML = cart.map((item, index) => `
+            <tr>
+                <td>${item.nama}</td>
+                <td>${item.qty}</td>
+                <td>${item.jual.toLocaleString()}</td>
+                <td>${(item.jual * item.qty).toLocaleString()}</td>
+                <td><button onclick="hapusItem(${index})" class="btn btn-danger btn-sm">x</button></td>
+            </tr>
+        `).join('');
+    }
+
+    function hapusItem(index) {
+        cart.splice(index, 1);
+        renderCart();
+    }
+
+    function clearInput() {
+        document.getElementById('namaBarang').value = '';
+        document.getElementById('hargaBeli').value = '';
+        document.getElementById('hargaJual').value = '';
+        document.getElementById('qty').value = '';
+    }
+
+    function simpanTransaksi() {
+        if(cart.length === 0) return alert("Keranjang kosong!");
+
+        const transaction = {
+            id: 'INV-' + Date.now(),
+            tanggal: new Date().toLocaleString('id-ID'),
+            pembeli: document.getElementById('pembeli').value || 'Umum',
+            items: cart,
+            totalJual: cart.reduce((sum, i) => sum + (i.jual * i.qty), 0),
+            totalBeli: cart.reduce((sum, i) => sum + (i.beli * i.qty), 0)
+        };
+
+        transactions.push(transaction);
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+        
+        siapkanCetak(transaction);
+        cart = [];
+        document.getElementById('pembeli').value = '';
+        renderCart();
+        renderHistory();
+        updateDashboard();
+        
+        window.print();
+    }
+
+    function siapkanCetak(trx) {
+        const printArea = document.getElementById('printArea');
+        let itemHtml = trx.items.map(i => `
+            <div style="display: flex; justify-content: space-between;">
+                <span>${i.nama} x${i.qty}</span>
+                <span>${(i.jual * i.qty).toLocaleString()}</span>
+            </div>
+        `).join('');
+
+        printArea.innerHTML = `
+            <div class="receipt-header">
+                <h4 style="margin:0">BAYU ANGGARA</h4>
+                <p style="margin:0">Prambon, Sidoarjo<br>08999686850</p>
+            </div>
+            <p>ID: ${trx.id}<br>Tgl: ${trx.tanggal}<br>Plgn: ${trx.pembeli}</p>
+            <div style="border-bottom: 1px dashed #000; margin: 5px 0;"></div>
+            ${itemHtml}
+            <div style="border-top: 1px dashed #000; margin: 5px 0; font-weight: bold; display: flex; justify-content: space-between;">
+                <span>TOTAL</span>
+                <span>Rp ${trx.totalJual.toLocaleString()}</span>
+            </div>
+            <div class="receipt-footer">
+                <p>Terima Kasih Atas<br>Kunjungan Anda</p>
+            </div>
+        `;
+    }
+
+    function renderHistory() {
+        const tbody = document.getElementById('historyTable');
+        tbody.innerHTML = transactions.map((trx, index) => `
+            <tr>
+                <td><small>${trx.id}</small></td>
+                <td><small>${trx.tanggal}</small></td>
+                <td>${trx.pembeli}</td>
+                <td>${trx.totalJual.toLocaleString()}</td>
+                <td>
+                    <button onclick="hapusTrx(${index})" class="btn btn-outline-danger btn-sm">Hapus</button>
+                </td>
+            </tr>
+        `).reverse().join('');
+    }
+
+    function hapusTrx(index) {
+        if(confirm('Hapus data ini dari riwayat?')) {
+            transactions.splice(transactions.length - 1 - index, 1);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            renderHistory();
+            updateDashboard();
+        }
+    }
+
+    function updateDashboard() {
+        const totalJual = transactions.reduce((sum, t) => sum + t.totalJual, 0);
+        const totalBeli = transactions.reduce((sum, t) => sum + t.totalBeli, 0);
+        const laba = totalJual - totalBeli;
+
+        document.getElementById('dashTotalJual').innerText = `Rp ${totalJual.toLocaleString()}`;
+        document.getElementById('dashTotalLaba').innerText = `Rp ${laba.toLocaleString()}`;
+    }
+
+    // Inisialisasi awal
+    renderHistory();
+    updateDashboard();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html><script src="dist/js/jquery-1.8.3.min.js" type="text/javascript"></script>
+<script>
+document.write('Write HTML in left');
+</script>
