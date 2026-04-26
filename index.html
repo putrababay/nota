@@ -384,6 +384,8 @@
           <p class="text-muted small mb-0" id="footerNota">
             Atas kunjungan dan kepercayaan Anda
           </p>
+          <br><br>
+          <a href="https://api.whatsapp.com/send?phone=+628999686850&text=Halo%2C%20saya%20tertarik%20dengan%20produk%20Anda%21" class="btn btn-success btn-sm"><i class="bi bi-whatsapp"></i> Hubungi Kami</a>
         </div>
       </footer>
     </div>
@@ -424,6 +426,22 @@
                 class="form-control"
                 placeholder="Terima Kasih"
               />
+            </div>
+
+            <hr class="my-3 border-secondary">
+
+            <div class="alert alert-warning p-2 small mb-2 text-start" role="alert">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <strong>Perhatian:</strong> Data aplikasi ini disimpan di memori internal peramban (browser) perangkat ini. Jangan lupa untuk <strong>Mencadangkan Data (Backup)</strong> secara berkala agar tidak hilang.
+            </div>
+            <div class="d-flex gap-2 mb-2">
+              <button type="button" class="btn btn-sm btn-outline-success w-100" onclick="backupData()">
+                <i class="bi bi-download me-1"></i> Backup Data
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="document.getElementById('fileRestore').click()">
+                <i class="bi bi-upload me-1"></i> Restore Data
+              </button>
+              <input type="file" id="fileRestore" class="d-none" accept=".json" onchange="restoreData(event)">
             </div>
           </div>
           <div class="modal-footer">
@@ -487,6 +505,52 @@
           timer: 1000,
           showConfirmButton: false,
         });
+      }
+
+      function backupData() {
+        const data = {
+          transactions: transactions,
+          shopSettings: shopSettings
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "Backup_Kasir_Mobile_" + new Date().getTime() + ".json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+      }
+
+      function restoreData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const data = JSON.parse(e.target.result);
+            if (data.transactions && data.shopSettings) {
+              transactions = data.transactions;
+              shopSettings = data.shopSettings;
+              localStorage.setItem("transactions", JSON.stringify(transactions));
+              localStorage.setItem("shopSettings", JSON.stringify(shopSettings));
+              initSettings();
+              initApp();
+              renderCart();
+              Swal.fire("Berhasil", "Data berhasil dipulihkan (Restore)", "success");
+              
+              const modalEl = document.getElementById('settingsModal');
+              const modal = bootstrap.Modal.getInstance(modalEl);
+              if (modal) modal.hide();
+            } else {
+              Swal.fire("Error", "Format file backup tidak valid", "error");
+            }
+          } catch (error) {
+            Swal.fire("Error", "Gagal membaca file backup", "error");
+          }
+          event.target.value = "";
+        };
+        reader.readAsText(file);
       }
 
       function formatRibuan(input) {
@@ -935,7 +999,7 @@
                     <span>Rp ${trx.totalJual.toLocaleString()}</span>
                 </div>
                 <div style="text-align: center; margin-top: 10px;">
-                    <br>${shopSettings.footer}
+                    <br>${shopSettings.footer}<br><br>
                 </div>
             </div>
         `;
