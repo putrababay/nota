@@ -972,5 +972,91 @@
       initSettings();
       initApp();
     </script>
+
+    <div class="modal fade" id="installModal" tabindex="-1" aria-labelledby="installModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="installModalLabel border-0">Pasang Aplikasi</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <img src="assets/icon-192.png" alt="Logo" class="mb-3 rounded-4 shadow-sm" style="width: 80px;">
+        <h5 class="fw-bold">Kasir Mobile</h5>
+        <p class="text-muted small">Instal aplikasi di layar utama untuk akses lebih cepat dan penggunaan tanpa browser.</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light text-secondary w-100 mb-2" data-bs-dismiss="modal">Nanti Saja</button>
+        <button type="button" id="btnInstall" class="btn btn-primary w-100 p-2 fw-bold">Instal Sekarang</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let deferredPrompt;
+const installModal = new bootstrap.Modal(document.getElementById('installModal'));
+const btnInstall = document.getElementById('btnInstall');
+
+// Tangkap event installasi dari browser
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Cegah browser menampilkan prompt bawaan secara otomatis
+  e.preventDefault();
+  // Simpan event agar bisa dipicu nanti
+  deferredPrompt = e;
+
+  // Cek apakah user sudah pernah menolak atau sudah install (menggunakan localStorage)
+  if (!localStorage.getItem('pwa_install_dismissed')) {
+      // Tampilkan modal setelah jeda 3 detik agar tidak mengganggu user di awal
+      setTimeout(() => {
+        installModal.show();
+      }, 3000);
+  }
+});
+
+// Aksi ketika tombol "Instal Sekarang" diklik
+btnInstall.addEventListener('click', async () => {
+  if (deferredPrompt) {
+    // Munculkan prompt instalasi asli browser
+    deferredPrompt.prompt();
+    
+    // Tunggu jawaban user
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+    
+    // Reset prompt
+    deferredPrompt = null;
+    installModal.hide();
+  }
+});
+
+// Opsional: Simpan status jika user menutup modal agar tidak muncul terus-menerus
+document.getElementById('installModal').addEventListener('hidden.bs.modal', () => {
+    localStorage.setItem('pwa_install_dismissed', 'true');
+});
+
+// Cek jika menggunakan iOS
+const isIos = () => {
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return /iphone|ipad|ipod/.test( userAgent );
+};
+
+// Cek jika aplikasi sudah terinstal (Standalone mode)
+const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+
+if (isIos() && !isInStandaloneMode()) {
+  // Ubah isi modal khusus untuk panduan install di iPhone
+  const modalBody = document.querySelector('#installModal .modal-body p');
+  modalBody.innerHTML = 'Klik ikon <b>Bagikan (Share)</b> <i class="bi bi-share"></i> lalu pilih <b>"Tambahkan ke Layar Utama"</b> untuk memasang aplikasi ini.';
+  document.getElementById('btnInstall').classList.add('d-none'); // Sembunyikan tombol instal manual
+  
+  // Tampilkan modal untuk iOS
+  setTimeout(() => {
+     installModal.show();
+  }, 4000);
+}
+
+
+</script>
   </body>
 </html>
